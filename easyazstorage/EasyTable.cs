@@ -25,7 +25,7 @@ namespace easyazstorage
         }
 
 
-        public void CreateIfNotExist<T>() where T : ITableEntity
+        public void CreateTableIfNotExist<T>() where T : ITableEntity
         {
             this.GetAzureTableClient<T>(true);
         }
@@ -37,6 +37,21 @@ namespace easyazstorage
             var tableClient = this.GetAzureTableClient<T>();
             tableClient.UpsertEntity(obj);
         }
+
+
+        public void SaveBatch<T>(List<T> entities) where T : class, ITableEntity, new()
+        {
+            var tableClient = this.GetAzureTableClient<T>();
+
+            var batch = new List<TableTransactionAction>();
+
+            batch.AddRange(entities.Select(item => new TableTransactionAction(TableTransactionActionType.UpsertMerge, item)));
+
+            Azure.Response<IReadOnlyList<Azure.Response>> response = tableClient.SubmitTransaction(batch);
+
+
+        }
+
 
 
         public void Delete<T>(T obj, bool throwIfNotFound = false) where T : class, ITableEntity, new()
@@ -96,17 +111,21 @@ namespace easyazstorage
                 filter = item => true;
             }
 
-            var tableClient = this.GetAzureTableClient<T>();
+            TableClient tableClient = this.GetAzureTableClient<T>();
 
+            // Remember: every underlying REST API call returns 1000 items (maximum).
+            // Giving an explicit maxPerPages is not strictly required.
+            // But if TopN < 1000, it would be a waste of resource retrieving more items than required.            
             int? maxPerPages = (topN.HasValue && topN < 1000) ? topN : null;
 
-            var queryResult = tableClient.Query<T>(filter, maxPerPages);
+            var query = tableClient.Query<T>(filter, maxPerPages);
 
             var outputBuffer = new List<T>();
 
-            foreach (var page in queryResult.AsPages())
+            foreach (var page in query.AsPages())
             {
                 outputBuffer.AddRange(page.Values);
+
                 if (topN.HasValue && outputBuffer.Count >= topN.Value)
                     break;
             }
