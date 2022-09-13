@@ -48,8 +48,41 @@ namespace easyazstorage
             batch.AddRange(entities.Select(item => new TableTransactionAction(TableTransactionActionType.UpsertMerge, item)));
 
             Azure.Response<IReadOnlyList<Azure.Response>> response = tableClient.SubmitTransaction(batch);
+        }
 
 
+
+        public int SaveAutoBatch<T>(List<T> entities) where T : class, ITableEntity, new()
+        {
+            //var pkList = entities.Select(x => x.PartitionKey).Distinct();
+
+            int batchCounter=0;
+
+            var groupByPK = entities.GroupBy(x => x.PartitionKey);
+
+            foreach (var group in groupByPK)
+            {
+                string pk = group.Key;
+
+             
+
+                List<T> allPKitems = group.ToList();
+
+                Console.WriteLine(pk + " : "+allPKitems.Count);
+
+                for (int i = 0; i < Math.Ceiling(allPKitems.Count / 100.0); i++)
+                {
+                    var batch = allPKitems.Skip(i * 100).Take(100).ToList();
+                    if (batch.Count > 0)
+                    {
+                        Console.WriteLine(i);
+                        SaveBatch(batch);
+                        batchCounter++;
+                    }
+                }
+            }
+
+            return batchCounter;
         }
 
 
