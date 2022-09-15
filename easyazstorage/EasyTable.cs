@@ -66,18 +66,16 @@ namespace easyazstorage
             {
                 string pk = group.Key;
 
-
-
                 List<T> allPKitems = group.ToList();
 
-                Console.WriteLine(pk + " : " + allPKitems.Count);
+                //Console.WriteLine(pk + " : " + allPKitems.Count);
 
                 for (int i = 0; i < Math.Ceiling(allPKitems.Count / 100.0); i++)
                 {
                     var batch = allPKitems.Skip(i * 100).Take(100).ToList();
                     if (batch.Count > 0)
                     {
-                        Console.WriteLine(i);
+                        //Console.WriteLine(i);
                         SaveBatch(batch);
                         batchCounter++;
                     }

@@ -1,5 +1,6 @@
 using Azure.Data.Tables;
 using Microsoft.Extensions.Configuration;
+using System.Diagnostics;
 
 namespace ZTest
 {
@@ -74,33 +75,69 @@ namespace ZTest
         [Test]
         public void RetrieveParallel()
         {
+            var stopwatch = new Stopwatch();
 
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
 
             string pk_root = "RetPar_";
+            int numOfItems = 100;
 
+            // Fill data
             List<Person> peopleIN = new List<Person>();
-            for (int i = 0; i < 2000; i++)
+            for (int i = 0; i < numOfItems; i++)
             {
                 var p = new Person() { PartitionKey = pk_root + (i % 10), RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
                 peopleIN.Add(p);
             }
             storage.Tables.SaveAutoBatch(peopleIN);
 
+            // parallel retrieve
+            stopwatch.Restart();
+            var filter = peopleIN.Select(x => (x.PartitionKey, x.RowKey)).ToArray();
+            List<Person> peopleOUTPar = storage.Tables.RetrieveParallel<Person>(filter);
+            Console.WriteLine($"items count: {peopleOUTPar.Count}  timer: {stopwatch.Elapsed}");
 
-            var filter = peopleIN.Select(x =>   (x.PartitionKey, x.RowKey )).ToArray();
+            // sequencial retrieve (classical)
+            stopwatch.Restart();
+            List<Person> peopleOUTSeq = new List<Person>();
+            peopleIN.ForEach(p => peopleOUTSeq.Add(storage.Tables.Retrieve<Person>(p.PartitionKey, p.RowKey)));
+            Console.WriteLine($"items count: {peopleOUTSeq.Count}  timer: {stopwatch.Elapsed}");
 
-         
-
-            List<Person> peopleOUT = storage.Tables.RetrieveParallel<Person>(filter); //....
-
-            Console.WriteLine(peopleOUT.Count);
-
-
-            // var items = storage.Tables.RunQuery<Person>(p => p.PartitionKey.CompareTo("AutoBatch_0") >= 0
-            //                                          && p.PartitionKey.CompareTo("AutoBatch_9") < 0);
-
+            // checks
+            var peopleINOrdered = peopleIN.OrderBy(p => p.PartitionKey).ThenBy(p => p.RowKey).ToList();
+            var peopleOUTParOrdered = peopleOUTPar.OrderBy(p => p.PartitionKey).ThenBy(p => p.RowKey).ToList();
+            var peopleOUTSeqOrdered = peopleOUTSeq.OrderBy(p => p.PartitionKey).ThenBy(p => p.RowKey).ToList();
+            Assert.IsTrue(ComparePeople(peopleINOrdered, peopleOUTParOrdered));
+            Assert.IsTrue(ComparePeople(peopleINOrdered, peopleOUTSeqOrdered));
         }
+
+
+        private bool ComparePeople(List<Person> people1, List<Person> people2)
+        {
+            if (people1.Count != people2.Count)
+                return false;
+
+            for (int i = 0; i < people1.Count; i++)
+            {
+                if (!ComparePerson(people1[i], people2[i]))
+                    return false;
+            }
+
+            return true;
+        }
+
+        private bool ComparePerson(Person p1, Person p2)
+        {
+            // Note : I could implement IComparable<Person> but I do not want to  dirty Person class.
+
+            return
+                (p1.PartitionKey == p2.PartitionKey) &&
+                (p1.RowKey == p2.RowKey) &&
+                (p1.FirstName == p2.FirstName) &&
+                (p1.LastName == p1.LastName) &&
+                (p1.BirthDate == p2.BirthDate);
+        }
+
 
 
         [Test]
