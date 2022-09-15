@@ -1,9 +1,11 @@
 ﻿using Azure.Data.Tables;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace easyazstorage
 {
@@ -56,7 +58,7 @@ namespace easyazstorage
         {
             //var pkList = entities.Select(x => x.PartitionKey).Distinct();
 
-            int batchCounter=0;
+            int batchCounter = 0;
 
             var groupByPK = entities.GroupBy(x => x.PartitionKey);
 
@@ -64,11 +66,11 @@ namespace easyazstorage
             {
                 string pk = group.Key;
 
-             
+
 
                 List<T> allPKitems = group.ToList();
 
-                Console.WriteLine(pk + " : "+allPKitems.Count);
+                Console.WriteLine(pk + " : " + allPKitems.Count);
 
                 for (int i = 0; i < Math.Ceiling(allPKitems.Count / 100.0); i++)
                 {
@@ -129,7 +131,40 @@ namespace easyazstorage
 
 
 
+        //public T[] ParallelRetrieve<T>(List<PKRK> pkrkList) where T : ITableEntity
+        //{
+        //    pkrkList = pkrkList.Distinct(new PKRKEqComparer()).ToList();
+        //    ConcurrentBag<T> resultList = new ConcurrentBag<T>();
+        //    var cloudtable = _azureStorage.GetAzureTable<T>();
+        //    Parallel.ForEach(pkrkList,
+        //        //new ParallelOptions() { MaxDegreeOfParallelism = 5 },  // per debug
+        //        item =>
+        //        {
+        //            TableOperation retrieveOperation = TableOperation.Retrieve<T>(item.PK, item.RK);
+        //            var res = cloudtable.Execute(retrieveOperation);
+        //            if (res.Result != null)
+        //                resultList.Add((T)res.Result);
+        //        });
+        //    return resultList.ToArray();
+        //}
 
+
+        public List<T> RetrieveParallel<T>((string PK, string RK)[] pkList) where T : class, ITableEntity, new()
+        {
+            var tableClient = this.GetAzureTableClient<T>();
+
+            var buffer = new ConcurrentBag<T>();
+
+            Parallel.ForEach(pkList,
+                item =>
+                {
+                    var obj = this.Retrieve<T>(item.PK, item.RK);
+                    buffer.Add(obj);
+
+                });
+
+            return buffer.ToList();
+        }
 
 
 

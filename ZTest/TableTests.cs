@@ -49,7 +49,7 @@ namespace ZTest
 
 
         [Test]
-        public void Test1()
+        public void Retrieve()
         {
             return; // -----------------
 
@@ -68,6 +68,38 @@ namespace ZTest
             var p1_retrieve = storage.Tables.Retrieve<Person>("A", "0");
             Assert.IsNotNull(p1_retrieve);
             Assert.That(p1_retrieve.BirthDate, Is.EqualTo(p1.BirthDate));
+        }
+
+
+        [Test]
+        public void RetrieveParallel()
+        {
+
+            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+
+            string pk_root = "RetPar_";
+
+            List<Person> peopleIN = new List<Person>();
+            for (int i = 0; i < 2000; i++)
+            {
+                var p = new Person() { PartitionKey = pk_root + (i % 10), RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
+                peopleIN.Add(p);
+            }
+            storage.Tables.SaveAutoBatch(peopleIN);
+
+
+            var filter = peopleIN.Select(x =>   (x.PartitionKey, x.RowKey )).ToArray();
+
+         
+
+            List<Person> peopleOUT = storage.Tables.RetrieveParallel<Person>(filter); ....
+
+            Console.WriteLine(peopleOUT.Count);
+
+
+            // var items = storage.Tables.RunQuery<Person>(p => p.PartitionKey.CompareTo("AutoBatch_0") >= 0
+            //                                          && p.PartitionKey.CompareTo("AutoBatch_9") < 0);
+
         }
 
 
