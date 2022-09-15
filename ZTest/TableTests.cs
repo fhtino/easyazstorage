@@ -92,7 +92,7 @@ namespace ZTest
 
          
 
-            List<Person> peopleOUT = storage.Tables.RetrieveParallel<Person>(filter); ....
+            List<Person> peopleOUT = storage.Tables.RetrieveParallel<Person>(filter); //....
 
             Console.WriteLine(peopleOUT.Count);
 
