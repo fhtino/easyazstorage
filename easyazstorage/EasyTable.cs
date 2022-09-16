@@ -41,23 +41,12 @@ namespace easyazstorage
         }
 
 
-        public void SaveBatch<T>(List<T> entities) where T : class, ITableEntity, new()
+
+
+
+
+        public int SaveMultiBatch<T>(List<T> entities) where T : class, ITableEntity, new()
         {
-            var tableClient = this.GetAzureTableClient<T>();
-
-            var batch = new List<TableTransactionAction>();
-
-            batch.AddRange(entities.Select(item => new TableTransactionAction(TableTransactionActionType.UpsertMerge, item)));
-
-            Azure.Response<IReadOnlyList<Azure.Response>> response = tableClient.SubmitTransaction(batch);
-        }
-
-
-
-        public int SaveAutoBatch<T>(List<T> entities) where T : class, ITableEntity, new()
-        {
-            //var pkList = entities.Select(x => x.PartitionKey).Distinct();
-
             int batchCounter = 0;
 
             var groupByPK = entities.GroupBy(x => x.PartitionKey);
@@ -68,15 +57,12 @@ namespace easyazstorage
 
                 List<T> allPKitems = group.ToList();
 
-                //Console.WriteLine(pk + " : " + allPKitems.Count);
-
                 for (int i = 0; i < Math.Ceiling(allPKitems.Count / 100.0); i++)
                 {
                     var batch = allPKitems.Skip(i * 100).Take(100).ToList();
                     if (batch.Count > 0)
                     {
-                        //Console.WriteLine(i);
-                        SaveBatch(batch);
+                        SaveBacthTransaction(batch);
                         batchCounter++;
                     }
                 }
@@ -85,6 +71,25 @@ namespace easyazstorage
             return batchCounter;
         }
 
+
+        public void SaveBacthTransaction<T>(List<T> entities) where T : class, ITableEntity, new()
+        {
+            var tableClient = this.GetAzureTableClient<T>();
+
+            var batch = new List<TableTransactionAction>();
+
+            batch.AddRange(entities.Select(item => new TableTransactionAction(TableTransactionActionType.UpsertMerge, item)));
+
+            Azure.Response<IReadOnlyList<Azure.Response>> responses = tableClient.SubmitTransaction(batch);
+
+            // AFAIK, it's not required to check every single result. In case of error, SubmitTransaction throws an exception.
+
+            //foreach (var resp in responses.Value)
+            //{
+            //    if (resp.IsError)
+            //        throw new ApplicationException("ERROR");
+            //}            
+        }
 
 
         public void Delete<T>(T obj, bool throwIfNotFound = false) where T : class, ITableEntity, new()

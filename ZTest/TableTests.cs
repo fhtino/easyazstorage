@@ -20,31 +20,22 @@ namespace ZTest
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-
-            // TODO : AddUserSecrets . . .
-
-
-            // "the type specified here is just so the secrets library can 
-            // find the UserSecretId we added in the csproj file"
-            // Ref: https://patrickhuber.github.io/2017/07/26/avoid-secrets-in-dot-net-core-tests.html
+            // Configuration:
+            // Note: the type specified here is just so the secrets library can 
+            //       find the UserSecretId we added in the csproj file"
+            //       Ref: https://patrickhuber.github.io/2017/07/26/avoid-secrets-in-dot-net-core-tests.html
 
             var builder = new ConfigurationBuilder()
-                .AddUserSecrets<TableTests>();
+                                 .AddUserSecrets<TableTests>();
 
             var Configuration = builder.Build();
-            string k1 = Configuration["key1"];
-            string k2 = Configuration["key2"];
-
             _azureConnectionString = Configuration["AzureStorageAccountConnString"];
             if (_azureConnectionString == null)
                 throw new ApplicationException("AzureStorageAccountConnString is null");
 
-
             // TODO: clear table or delete/create table
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
             storage.Tables.CreateTableIfNotExist<Person>();
-
-
         }
 
 
@@ -52,11 +43,7 @@ namespace ZTest
         [Test]
         public void Retrieve()
         {
-            return; // -----------------
-
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
-
-            storage.Tables.CreateTableIfNotExist<Person>();
 
             var p1 = new Person() { PartitionKey = "A", RowKey = "0", FirstName = "Fabrizio", LastName = "ABC", BirthDate = DateTime.UtcNow };
             var p2 = new Person() { PartitionKey = "A", RowKey = "1", FirstName = "Sabry", LastName = "ABC", BirthDate = DateTime.UtcNow };
@@ -89,7 +76,7 @@ namespace ZTest
                 var p = new Person() { PartitionKey = pk_root + (i % 10), RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
                 peopleIN.Add(p);
             }
-            storage.Tables.SaveAutoBatch(peopleIN);
+            storage.Tables.SaveMultiBatch(peopleIN);
 
             // parallel retrieve
             stopwatch.Restart();
@@ -259,7 +246,7 @@ namespace ZTest
 
 
         [Test]
-        public void SaveBatch()
+        public void SaveBacthTransaction()
         {
             // Warning: Azurite bug : does not correctly manage batches
             // https://github.com/Azure/Azurite/issues/1215
@@ -277,27 +264,29 @@ namespace ZTest
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
 
             // 1 item
-            storage.Tables.SaveBatch(people.Take(1).ToList());
+            storage.Tables.SaveBacthTransaction(people.Take(1).ToList());
 
             // 100 items (max)
-            storage.Tables.SaveBatch(people.Take(100).ToList());
+            storage.Tables.SaveBacthTransaction(people.Take(100).ToList());
 
             // too many items
-            var ex1 = Assert.Throws<TableTransactionFailedException>(() => { storage.Tables.SaveBatch(people.Take(101).ToList()); });
+            var ex1 = Assert.Throws<TableTransactionFailedException>(() => { storage.Tables.SaveBacthTransaction(people.Take(101).ToList()); });
             Assert.IsTrue(ex1.Status == 400);
             Assert.IsTrue(ex1.FailedTransactionActionIndex == 99);
 
-            // items not all on the same partion-key
-            people[5].PartitionKey = "break";
-            var ex2 = Assert.Throws<TableTransactionFailedException>(() => { storage.Tables.SaveBatch(people.Take(10).ToList()); });
+            // items not all on the same partion-key --> transaction rollback
+            people[115].PartitionKey = "break";
+            var ex2 = Assert.Throws<TableTransactionFailedException>(() => { storage.Tables.SaveBacthTransaction(people.Skip(100).Take(40).ToList()); });
             Assert.IsTrue(ex2.Status == 400);
-            Assert.IsTrue(ex2.FailedTransactionActionIndex == 5);
+            Assert.IsTrue(ex2.FailedTransactionActionIndex == 15);
+            Assert.IsNull(storage.Tables.Retrieve<Person>(pk, "114"));
+            Assert.IsNull(storage.Tables.Retrieve<Person>(pk, "116"));
         }
 
 
 
         [Test]
-        public void SaveAutoBatch()
+        public void SaveMultiBatch()
         {
             string pk = "AutoBatch";
 
@@ -309,15 +298,16 @@ namespace ZTest
             }
 
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
-            int n = storage.Tables.SaveAutoBatch(people);
+            int n = storage.Tables.SaveMultiBatch(people);
 
             Assert.IsTrue(n == 14);
-
             var items = storage.Tables.RunQuery<Person>(p => p.PartitionKey.CompareTo("AutoBatch_0") >= 0
                                                           && p.PartitionKey.CompareTo("AutoBatch_9") < 0);
-
             Assert.IsTrue(items.Count == 1000);
 
+            // send a not valid item
+            people[17].PartitionKey = "###";  // '#' is not a valid character for partion keys
+            Assert.Catch<TableTransactionFailedException>(() => { storage.Tables.SaveMultiBatch(people); });
         }
 
 
