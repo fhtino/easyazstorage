@@ -128,18 +128,16 @@ namespace ZTest
 
 
         [Test]
-        public void Test2()
+        public void Save()
         {
-            return; // -----------------
-
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
 
+            var p_OK = new Person() { PartitionKey = "Single", RowKey = "00000", FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
+            var p_ERR = new Person() { PartitionKey = "####", RowKey = "#####", FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
 
-            for (int i = 0; i < 2000; i++)
-            {
-                var p = new Person() { PartitionKey = "B", RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
-                storage.Tables.Save(p);
-            }
+            storage.Tables.Save(p_OK);
+
+            Assert.Throws<Azure.RequestFailedException>(() => storage.Tables.Save(p_ERR));
         }
 
 
@@ -150,22 +148,18 @@ namespace ZTest
 
             string pk = "TopN";
 
+            // Build test data
+            var peopleData = new List<Person>();
+            for (int i = 0; i < 2000; i++)
+            {
+                peopleData.Add(new Person() { PartitionKey = pk, RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow });
+            }
+            int n = storage.Tables.SaveMultiBatch(peopleData);
+            Console.WriteLine(n);
+
+
+            // tests
             List<Person> people;
-
-            people = storage.Tables.RunQuery<Person>(p => p.PartitionKey == pk);
-
-            //if (people.Count != 2000)
-            //{
-            //    for (int i = 0; i < 2000; i++)
-            //    {
-            //        var p = new Person() { PartitionKey = pk, RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
-            //        storage.Tables.Save(p);
-            //    }
-            //}
-
-
-
-
 
             people = storage.Tables.RunQuery<Person>(p => p.PartitionKey == pk);
             Assert.That(people.Count, Is.EqualTo(2000));
@@ -186,7 +180,7 @@ namespace ZTest
 
 
         [Test]
-        public void First()
+        public void FirstOfTable()
         {
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
 
@@ -203,7 +197,7 @@ namespace ZTest
         }
 
 
-        [Test]
+        [Test]        
         public void GetAll()
         {
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
@@ -314,7 +308,7 @@ namespace ZTest
 
 
         [Test]
-        public void DeleteBatch()
+        public void Delete()
         {
             Assert.Fail();
         }
@@ -322,10 +316,12 @@ namespace ZTest
 
 
         [Test]
-        public void InsertBatch()
+        public void DeleteBatch()
         {
             Assert.Fail();
         }
+
+ 
 
 
     }
