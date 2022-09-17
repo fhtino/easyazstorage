@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
-		<VersionPrefix>0.0.1</VersionPrefix>
+		<VersionPrefix>0.0.2</VersionPrefix>
 		<VersionSuffix>alpha</VersionSuffix>
 		<!--<Version>$(VersionPrefix)</Version>-->
 		<Authors>Fhtino</Authors>
@@ -11,6 +11,7 @@
 		<PackageProjectUrl>https://github.com/fhtino/easyazstorage</PackageProjectUrl>
 		<RepositoryUrl>https://github.com/fhtino/easyazstorage</RepositoryUrl>
 		<PackageId>fhtino.$(AssemblyName)</PackageId>
+		<PackageLicenseExpression>MIT</PackageLicenseExpression>
 	</PropertyGroup>
 
 	<ItemGroup>
