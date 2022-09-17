@@ -197,7 +197,7 @@ namespace ZTest
         }
 
 
-        [Test]        
+        [Test]
         public void GetAll()
         {
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
@@ -211,7 +211,7 @@ namespace ZTest
 
 
         [Test]
-        public void DeleteSingle()
+        public void Delete()
         {
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
 
@@ -307,21 +307,50 @@ namespace ZTest
 
 
 
-        [Test]
-        public void Delete()
-        {
-            Assert.Fail();
-        }
-
 
 
         [Test]
-        public void DeleteBatch()
+        public void DeleteBatchTransaction()
         {
-            Assert.Fail();
+            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+
+            string pk = "delete";
+
+            // prepare test data
+            List<Person> people = new List<Person>(); ;
+            for (int i = 0; i < 200; i++)
+            {
+                var p = new Person() { PartitionKey = pk, RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
+                people.Add(p);
+            }
+            storage.Tables.SaveMultiBatch(people);
+
+
+            // too many items
+            Assert.Throws<TableTransactionFailedException>(() => storage.Tables.DeleteBatchTransaction(people));
+
+            // ok
+            storage.Tables.DeleteBatchTransaction(people.Take(1).ToList());
+            storage.Tables.DeleteBatchTransaction(people.Skip(1).Take(10).ToList());
+            storage.Tables.DeleteBatchTransaction(people.Skip(11).Take(100).ToList());
+
+            // delete already deleted item
+            storage.Tables.DeleteBatchTransaction(people.Take(1).ToList());
+
+            Azure.Data.Tables.TableTransactionFailedException
+
+
+            Assert.Fail("TODO");
         }
 
- 
+
+        public void DeleteMultiBatch()
+        {
+            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+
+
+            Assert.Fail("TODO");
+        }
 
 
     }

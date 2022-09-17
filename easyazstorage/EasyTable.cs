@@ -33,16 +33,11 @@ namespace easyazstorage
         }
 
 
-
         public void Save<T>(T obj) where T : class, ITableEntity, new()
         {
             var tableClient = this.GetAzureTableClient<T>();
             tableClient.UpsertEntity(obj);
         }
-
-
-
-
 
 
         public int SaveMultiBatch<T>(List<T> entities) where T : class, ITableEntity, new()
@@ -112,6 +107,23 @@ namespace easyazstorage
             }
 
         }
+
+
+
+        public void DeleteBatchTransaction<T>(List<T> entities) where T : class, ITableEntity, new()
+        {
+            var tableClient = this.GetAzureTableClient<T>();
+
+            var batch = new List<TableTransactionAction>();
+
+            batch.AddRange(
+                entities.Select(
+                    item => new TableTransactionAction(TableTransactionActionType.Delete, item)));
+
+            Azure.Response<IReadOnlyList<Azure.Response>> responses = tableClient.SubmitTransaction(batch);
+        }
+
+
 
 
         public T Retrieve<T>(string pk, string rk) where T : class, ITableEntity, new()
@@ -214,7 +226,6 @@ namespace easyazstorage
             var list = RunQuery<T>(null, 1);
             return list.FirstOrDefault();
         }
-
 
 
 
