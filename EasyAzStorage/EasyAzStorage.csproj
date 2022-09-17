@@ -12,6 +12,7 @@
 		<RepositoryUrl>https://github.com/fhtino/easyazstorage</RepositoryUrl>
 		<PackageId>fhtino.$(AssemblyName)</PackageId>
 		<PackageLicenseExpression>MIT</PackageLicenseExpression>
+		<Description>EasyAzStorage</Description>
 	</PropertyGroup>
 
 	<ItemGroup>
