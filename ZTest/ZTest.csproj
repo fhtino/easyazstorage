@@ -20,7 +20,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\easyazstorage\easyazstorage.csproj" />
+    <ProjectReference Include="..\easyazstorage\EasyAzStorage.csproj" />
   </ItemGroup>
 
 </Project>

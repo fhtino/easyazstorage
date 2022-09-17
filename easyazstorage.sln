@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "easyazstorage", "easyazstorage\easyazstorage.csproj", "{85788F85-0EEC-4FF2-9C5D-9DF8D3071280}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EasyAzStorage", "EasyAzStorage\EasyAzStorage.csproj", "{85788F85-0EEC-4FF2-9C5D-9DF8D3071280}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZTest", "ZTest\ZTest.csproj", "{D8EE4B08-D26B-4105-88CF-F9BD5894480E}"
 EndProject
