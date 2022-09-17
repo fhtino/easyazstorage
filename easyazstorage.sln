@@ -5,12 +5,14 @@ VisualStudioVersion = 17.2.32526.322
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "easyazstorage", "easyazstorage\easyazstorage.csproj", "{85788F85-0EEC-4FF2-9C5D-9DF8D3071280}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ZTest", "ZTest\ZTest.csproj", "{D8EE4B08-D26B-4105-88CF-F9BD5894480E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ZTest", "ZTest\ZTest.csproj", "{D8EE4B08-D26B-4105-88CF-F9BD5894480E}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FD923EE7-FA32-4F16-9448-00026515C11D}"
 	ProjectSection(SolutionItems) = preProject
 		README.md = README.md
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{779B1064-53A1-48C6-A23E-15F519253046}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,6 +28,10 @@ Global
 		{D8EE4B08-D26B-4105-88CF-F9BD5894480E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D8EE4B08-D26B-4105-88CF-F9BD5894480E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D8EE4B08-D26B-4105-88CF-F9BD5894480E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{779B1064-53A1-48C6-A23E-15F519253046}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{779B1064-53A1-48C6-A23E-15F519253046}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{779B1064-53A1-48C6-A23E-15F519253046}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{779B1064-53A1-48C6-A23E-15F519253046}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
