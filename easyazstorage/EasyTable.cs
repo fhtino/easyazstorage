@@ -1,4 +1,5 @@
-﻿using Azure.Data.Tables;
+﻿using Azure;
+using Azure.Data.Tables;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -109,9 +110,10 @@ namespace easyazstorage
         }
 
 
-
         public void DeleteBatchTransaction<T>(List<T> entities) where T : class, ITableEntity, new()
         {
+            // note: tableClient.SubmitTransaction is already optimized. It only sends pk, rk and etag over the wire.
+
             var tableClient = this.GetAzureTableClient<T>();
 
             var batch = new List<TableTransactionAction>();
@@ -122,6 +124,52 @@ namespace easyazstorage
 
             Azure.Response<IReadOnlyList<Azure.Response>> responses = tableClient.SubmitTransaction(batch);
         }
+
+
+        public int DeleteMultiBatch<T>(List<T> entities) where T : class, ITableEntity, new()
+        {
+            //ResetCounters();
+
+            int batchCounter = 0;
+
+            var groupByPK = entities.GroupBy(x => x.PartitionKey);
+
+            foreach (var group in groupByPK)
+            {
+                string pk = group.Key;
+
+                List<T> allPKitems = group.ToList();
+
+                for (int i = 0; i < Math.Ceiling(allPKitems.Count / 100.0); i++)
+                {
+                    var batch = allPKitems.Skip(i * 100).Take(100).ToList();
+                    if (batch.Count > 0)
+                    {
+                        DeleteBatchTransaction(batch);
+                        //LastRunNumOfItems += batch.Count;
+                        //LastRunNumOfBatches++;
+                    }
+                }
+            }
+
+            return batchCounter;
+        }
+
+
+        //private void ResetCounters()
+        //{
+        //    LastRunNumOfItems = 0;
+        //    LastRunNumOfBatches = 0;
+        //}
+
+        //public int LastRunNumOfItems { get; private set; }
+        //public int LastRunNumOfBatches { get; private set; }
+
+
+
+
+
+
 
 
 

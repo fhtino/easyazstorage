@@ -316,17 +316,19 @@ namespace ZTest
 
             string pk = "delete";
 
+            string lastname = "hello";
+            //string lastname = new string('-', 30 * 1000);   // must be <64K
+
             // prepare test data
             List<Person> people = new List<Person>(); ;
             for (int i = 0; i < 200; i++)
             {
-                var p = new Person() { PartitionKey = pk, RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
+                var p = new Person() { PartitionKey = pk, RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = lastname, BirthDate = DateTime.UtcNow };
                 people.Add(p);
             }
             storage.Tables.SaveMultiBatch(people);
 
-
-            // too many items
+            // too many items (>100)
             Assert.Throws<TableTransactionFailedException>(() => storage.Tables.DeleteBatchTransaction(people));
 
             // ok
@@ -334,22 +336,48 @@ namespace ZTest
             storage.Tables.DeleteBatchTransaction(people.Skip(1).Take(10).ToList());
             storage.Tables.DeleteBatchTransaction(people.Skip(11).Take(100).ToList());
 
-            // delete already deleted item
-            storage.Tables.DeleteBatchTransaction(people.Take(1).ToList());
+            // checks
+            List<Person> remainingItems = storage.Tables.RunQuery<Person>(p => p.PartitionKey == pk);
+            Assert.IsTrue(remainingItems.Count == 89);
 
-            Azure.Data.Tables.TableTransactionFailedException
-
-
-            Assert.Fail("TODO");
+            // delete already deleted item  --> error
+            Assert.Throws<TableTransactionFailedException>(() => storage.Tables.DeleteBatchTransaction(people.Take(1).ToList()));
         }
 
 
+        [Test]
         public void DeleteMultiBatch()
         {
             var storage = new easyazstorage.AzureStorage(_azureConnectionString);
 
+            string pk = "DeleteMultiBatch";
+            int numOfItems = 1000;
 
-            Assert.Fail("TODO");
+            List<Person> people = new List<Person>(); ;
+            for (int i = 0; i < numOfItems; i++)
+            {
+                var p = new Person() { PartitionKey = pk + "_" + (i % 7).ToString(), RowKey = i.ToString(), FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
+                people.Add(p);
+            }
+
+            int n = storage.Tables.SaveMultiBatch(people);
+
+            Console.WriteLine(n);
+
+            var itemsPre = storage.Tables.RunQuery<Person>(p => p.PartitionKey.CompareTo(pk + "_0") >= 0
+                                                             && p.PartitionKey.CompareTo(pk + "_9") < 0);
+
+            Assert.IsTrue(itemsPre.Count == numOfItems);
+
+            int m = storage.Tables.DeleteMultiBatch(people);
+
+            Console.WriteLine(m);
+
+            var itemsPost = storage.Tables.RunQuery<Person>(p => p.PartitionKey.CompareTo(pk + "_0") >= 0
+                                                              && p.PartitionKey.CompareTo(pk + "_9") < 0);
+
+            Assert.IsTrue(itemsPost.Count == 0);
+
         }
 
 
