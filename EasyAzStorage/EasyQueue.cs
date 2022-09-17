@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace easyazstorage
+namespace EasyAzStorage
 {
     public class EasyQueue
     {

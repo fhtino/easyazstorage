@@ -33,7 +33,7 @@ namespace ZTest
                 throw new ApplicationException("AzureStorageAccountConnString is null");
 
             // TODO: clear table or delete/create table
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
             storage.Tables.CreateTableIfNotExist<Person>();
         }
 
@@ -42,7 +42,7 @@ namespace ZTest
         [Test]
         public void Retrieve()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             var p1 = new Person() { PartitionKey = "A", RowKey = "0", FirstName = "Fabrizio", LastName = "ABC", BirthDate = DateTime.UtcNow };
             var p2 = new Person() { PartitionKey = "A", RowKey = "1", FirstName = "Sabry", LastName = "ABC", BirthDate = DateTime.UtcNow };
@@ -63,7 +63,7 @@ namespace ZTest
         {
             var stopwatch = new Stopwatch();
 
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             string pk_root = "RetPar_";
             int numOfItems = 100;
@@ -129,7 +129,7 @@ namespace ZTest
         [Test]
         public void Save()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             var p_OK = new Person() { PartitionKey = "Single", RowKey = "00000", FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
             var p_ERR = new Person() { PartitionKey = "####", RowKey = "#####", FirstName = Guid.NewGuid().ToString(), LastName = "guid", BirthDate = DateTime.UtcNow };
@@ -143,7 +143,7 @@ namespace ZTest
         [Test]
         public void TopN()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             string pk = "TopN";
 
@@ -181,7 +181,7 @@ namespace ZTest
         [Test]
         public void FirstOfTable()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             string zeros = "000000";
 
@@ -199,7 +199,7 @@ namespace ZTest
         [Test]
         public void GetAll()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             var people = storage.Tables.RunQuery<Person>(null);
 
@@ -212,7 +212,7 @@ namespace ZTest
         [Test]
         public void Delete()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             string id = "tobedeleted";
 
@@ -254,7 +254,7 @@ namespace ZTest
                 people.Add(p);
             }
 
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             // 1 item
             storage.Tables.SaveBacthTransaction(people.Take(1).ToList());
@@ -290,7 +290,7 @@ namespace ZTest
                 people.Add(p);
             }
 
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
             int n = storage.Tables.SaveMultiBatch(people);
 
             Assert.IsTrue(n == 14);
@@ -311,7 +311,7 @@ namespace ZTest
         [Test]
         public void DeleteBatchTransaction()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             string pk = "delete";
 
@@ -347,7 +347,7 @@ namespace ZTest
         [Test]
         public void DeleteMultiBatch()
         {
-            var storage = new easyazstorage.AzureStorage(_azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
             string pk = "DeleteMultiBatch";
             int numOfItems = 1000;

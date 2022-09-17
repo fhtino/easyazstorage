@@ -8,7 +8,8 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace easyazstorage
+
+namespace EasyAzStorage
 {
 
     public class EasyTable

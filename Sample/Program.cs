@@ -8,7 +8,7 @@
         {
             string azureConnectionString = "UseDevelopmentStorage=true;";
 
-            var storage = new easyazstorage.AzureStorage(azureConnectionString);
+            var storage = new EasyAzStorage.AzureStorage(azureConnectionString);
 
             storage.Tables.CreateTableIfNotExist<Book>();
 
