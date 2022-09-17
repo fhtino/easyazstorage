@@ -4,9 +4,21 @@
 		<TargetFramework>netstandard2.0</TargetFramework>
 		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 		<VersionPrefix>0.0.1</VersionPrefix>
-		<Version>$(VersionPrefix)</Version>
+		<VersionSuffix>alpha</VersionSuffix>
+		<!--<Version>$(VersionPrefix)</Version>-->
 		<Authors>Fhtino</Authors>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageProjectUrl>https://github.com/fhtino/easyazstorage</PackageProjectUrl>
+		<RepositoryUrl>https://github.com/fhtino/easyazstorage</RepositoryUrl>
+		<PackageId>fhtino.$(AssemblyName)</PackageId>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Include="..\README.md">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Azure.Data.Tables" Version="12.6.1" />
