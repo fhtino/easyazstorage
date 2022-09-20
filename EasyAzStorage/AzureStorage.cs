@@ -10,6 +10,7 @@ namespace EasyAzStorage
         private string _prefix;
         private EasyTable _tables;
         private EasyQueue _queues;
+        private EasyBlob _blobs;
 
         public AzureStorage(string connString, string prefix = null)
         {
@@ -17,13 +18,13 @@ namespace EasyAzStorage
             _prefix = prefix;
             _tables = new EasyTable(connString, prefix);
             _queues = new EasyQueue();
+            _blobs = new EasyBlob(connString);
         }
 
 
         public EasyTable Tables { get { return _tables; } }
         public EasyQueue Queues { get { return _queues; } }
-        // TODO : blobs
-
+        public EasyBlob Blobs { get { return _blobs; } }
 
     }
 }
