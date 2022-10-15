@@ -8,23 +8,15 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 
+
 namespace EasyAzStorage
 {
-
-
 
     public class EasyBlob
     {
 
-        public class BlobInfo
-        {
-            public string Name { get; set; }
-            public DateTime? LastModified { get; set; }
-        }
-
-
-
         // info : https://github.com/Azure/azure-sdk-for-net/blob/main/sdk/storage/Azure.Storage.Blobs/README.md
+
 
         private string _connectionString;
 
@@ -35,7 +27,7 @@ namespace EasyAzStorage
         }
 
 
-        public void CreateContainerIfNotExist(string containerName)
+        public void ContainerCreateIfNotExist(string containerName)
         {
             this.GetAzureBlobClient(containerName, true);
         }
@@ -75,6 +67,14 @@ namespace EasyAzStorage
         }
 
 
+        public void DeleteParallel(string containerName, List<string> blobNameList)
+        {
+            var client = GetAzureBlobClient(containerName);
+            Parallel.ForEach(blobNameList, blobName => client.DeleteBlob(blobName));
+        }
+
+
+
         public void StoreDataParallel(string containerName, List<(string blobName, byte[] data)> items, bool overwrite = true)
         {
             // There is BUG in the library / .net 6  ????
@@ -84,8 +84,7 @@ namespace EasyAzStorage
             var client = GetAzureBlobClient(containerName);
 
             Parallel.ForEach(
-                items, 
-                //new ParallelOptions() { MaxDegreeOfParallelism = 1 },
+                items,
                 item =>
                 {
                     var blob = client.GetBlobClient(item.blobName);
@@ -102,12 +101,8 @@ namespace EasyAzStorage
 
             var outputList = new ConcurrentBag<(string blobName, byte[] data)>();
 
-
-            //System.Collections.Concurrent.ConcurrentBag
-
             Parallel.ForEach(
                blobNameList,
-               //new ParallelOptions() { MaxDegreeOfParallelism = 1 },
                blobName =>
                {
                    var blob = client.GetBlobClient(blobName);
@@ -120,30 +115,20 @@ namespace EasyAzStorage
         }
 
 
-        public List<BlobInfo> List(string containerName, string prefix = null)
+        public List<BlobItem> List(string containerName, string prefix = null)
         {
             var client = GetAzureBlobClient(containerName);
-            var outList = new List<BlobInfo>();
-            foreach (var item in client.GetBlobs(prefix: prefix))
-            {
-                outList.Add(
-                    new BlobInfo()
-                    {
-                        Name = item.Name,
-                        LastModified = item.Properties.LastModified?.UtcDateTime
-                    });
-            }
-            return outList;
+            return client.GetBlobs(prefix: prefix).ToList();
         }
 
 
 
-        public async Task<List<BlobInfo>> ListAsync(string containerName, string prefix = null)
+        public async Task<List<BlobItem>> WIP_ListAsync(string containerName, string prefix = null)
         {
             throw new NotImplementedException("Work in progress");
 
             var client = GetAzureBlobClient(containerName);
-            var outList = new List<BlobInfo>();
+            var outList = new List<BlobItem>();
 
 
             Azure.AsyncPageable<BlobItem> response = client.GetBlobsAsync(prefix: prefix);
@@ -158,12 +143,7 @@ namespace EasyAzStorage
             while (await enumerator.MoveNextAsync())
             {
                 BlobItem item = enumerator.Current;
-                outList.Add(
-                   new BlobInfo()
-                   {
-                       Name = item.Name,
-                       LastModified = item.Properties.LastModified?.UtcDateTime
-                   });
+                outList.Add(item);
             }
 
             return outList;
@@ -171,46 +151,39 @@ namespace EasyAzStorage
 
 
 
-        public List<BlobInfo> List2(string containerName, string prefix = null)
+        public (List<BlobItem> Blobs, List<string> Folders) ListSingleLevel(string containerName, string prefix = null)
         {
-            //  info:  https://github.com/Azure/azure-sdk-for-net/issues/12315
-
             var client = GetAzureBlobClient(containerName);
 
-            prefix = null;
+            var output = (Blobs: new List<BlobItem>(),
+                          Folders: new List<string>());
 
-            string delimiter = "/";
-
-            var outList = new List<BlobInfo>();
-
-            // if you specify the delimiter, the listing:
+            // If you specify the delimiter, the listing:
             //   - is based on prefix
             //   - is NOT recursive.
             //   - contains 'directories' and 'files'
+            //
+            // info: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-list
+            //       https://github.com/Azure/azure-sdk-for-net/issues/12315
 
-
-            foreach (var item in client.GetBlobsByHierarchy(prefix: prefix, delimiter: delimiter))
+            foreach (var item in client.GetBlobsByHierarchy(prefix: prefix, delimiter: "/"))
             {
-                Console.WriteLine(item.Prefix + ":IsPrefix=" + item.IsPrefix + ":IsBlob=" + item.IsBlob + ":" + (item.IsBlob ? item.Blob.Name : "-"));
-
-                //item.
-                //outList.Add(
-                //    new BlobInfo()
-                //    {
-                //        Name = item.Name,
-                //        LastModified = item.Properties.LastModified?.UtcDateTime
-                //    });
+                if (item.IsPrefix)
+                {
+                    output.Folders.Add(item.Prefix);
+                }
+                else if (item.IsBlob)
+                {
+                    output.Blobs.Add(item.Blob);
+                }
+                else
+                {
+                    throw new ApplicationException("Unknown element type");
+                }
             }
 
-
-
-            //client.GetBlobsByHierarchy
-
-            return outList;
+            return output;
         }
-
-
-
 
 
 

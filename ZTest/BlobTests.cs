@@ -39,11 +39,12 @@ namespace ZTest
 
             // TODO: clear container or create a new one
             var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
-            storage.Blobs.CreateContainerIfNotExist(_containerName);
+            storage.Blobs.ContainerCreateIfNotExist(_containerName);
         }
 
 
         [Test]
+        [Order(9)]
         public void ReadWriteExistsDelete()
         {
             var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
@@ -52,11 +53,9 @@ namespace ZTest
             byte[] data2 = GetRandomBytes(1 * 1024);
             byte[] data3 = GetRandomBytes(1 * 1024 * 1024);
 
-
             storage.Blobs.StoreData(_containerName, "data1.dat", data1);
             storage.Blobs.StoreData(_containerName, "data2.dat", data2);
             storage.Blobs.StoreData(_containerName, "data3.dat", data3);
-
 
             byte[] data1_out = storage.Blobs.GetData(_containerName, "data1.dat");
             byte[] data2_out = storage.Blobs.GetData(_containerName, "data2.dat");
@@ -72,36 +71,55 @@ namespace ZTest
             Assert.IsTrue(storage.Blobs.BlobExists(_containerName, "data1.dat"));
             Assert.IsFalse(storage.Blobs.BlobExists(_containerName, "non_existing.dat"));
 
-
             storage.Blobs.Delete(_containerName, "data3.dat");
             Assert.IsFalse(storage.Blobs.BlobExists(_containerName, "data3.dat"));
+
+
+            for (int i = 0; i < 10; i++)
+            {
+                storage.Blobs.StoreData(_containerName, $"listing/f{i}.dat", GetRandomBytes(10));
+                storage.Blobs.StoreData(_containerName, $"listing/sub1/s1_{i}.dat", GetRandomBytes(10));
+                storage.Blobs.StoreData(_containerName, $"listing/sub1/sub1.1/s1_{i}.dat", GetRandomBytes(10));
+                storage.Blobs.StoreData(_containerName, $"listing/sub2/s2_{i}.dat", GetRandomBytes(10));
+            }
         }
 
 
         [Test]
-        public void Listing()
+        [Order(10)]
+        public void List()
         {
-
             var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
+            var blobs = storage.Blobs.List(_containerName);
 
-            //storage.Blobs.StoreData(_containerName, "f1.dat", new byte[] { 100, 101, 202 });
-            //storage.Blobs.StoreData(_containerName, "a/f1.dat", new byte[] { 100, 101, 202 });
-            //storage.Blobs.StoreData(_containerName, "a\\f2.dat", new byte[] { 100, 101, 202 });
-            //storage.Blobs.StoreData(_containerName, "b/f1.dat", new byte[] { 100, 101, 202 });
-            //storage.Blobs.StoreData(_containerName, "b\\f2.dat", new byte[] { 100, 101, 202 });
+            blobs = storage.Blobs.List(_containerName, "listing/");
+            blobs.ForEach(b => Console.WriteLine(b.Name));
+            Assert.IsTrue(blobs.Count == 40);
 
-            //storage.Blobs.StoreData(_containerName, "c/f1.dat", new byte[] { 100, 101, 202 });
-            //storage.Blobs.StoreData(_containerName, "c/1/2/3/4/f1.dat", new byte[] { 100, 101, 202 });
+            blobs = storage.Blobs.List(_containerName, "listing/sub1/");
+            Assert.IsTrue(blobs.Count == 20);
+        }
 
 
-            var blobList = storage.Blobs.List2(_containerName);
+        [Test]
+        [Order(11)]
+        public void ListSingleLevel()
+        {
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
-            foreach (var b in blobList)
-            {
-                Console.WriteLine(b.Name);
-            }
+            var blobsAndFolders = storage.Blobs.ListSingleLevel(_containerName);
 
+            blobsAndFolders = storage.Blobs.ListSingleLevel(_containerName, "listing/");
+
+            Console.WriteLine("\nFolders:");
+            blobsAndFolders.Folders.ForEach(f => Console.WriteLine(f));
+
+            Console.WriteLine("\nBlobs:");
+            blobsAndFolders.Blobs.ForEach(b => Console.WriteLine(b.Name));
+
+            Assert.IsTrue(blobsAndFolders.Folders.Count == 2);
+            Assert.IsTrue(blobsAndFolders.Blobs.Count == 10);
         }
 
 
@@ -116,23 +134,48 @@ namespace ZTest
 
             var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
 
-            var blobList = Enumerable.Range(0, 1000).Select(i => ("parallel1/blob_" + i, GetRandomBytes(1 * 1024))).ToList();
+            var blobList = Enumerable.Range(0, 200).Select(i => ("parallel1/blob_" + i, GetRandomBytes(10 * 1024))).ToList();
 
-            //storage.Blobs.StoreDataParallel(_containerName, blobList);
+            storage.Blobs.StoreDataParallel(_containerName, blobList);
 
             var blobNameList = blobList.Select(x => x.Item1).ToList();
 
-
             var blobListOUT = storage.Blobs.GetDataParallel(_containerName, blobNameList);
-
-
-
         }
 
 
 
+        [Test]
+        [Order(1)]
+        public void DeleteParallel()
+        {
+            int n = 100;
+
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
+            var blobList = Enumerable.Range(0, n).Select(i => ("parallel2/blob_" + i, GetRandomBytes(1 * 1024))).ToList();
+            storage.Blobs.StoreDataParallel(_containerName, blobList);
+
+            Assert.IsTrue(storage.Blobs.List(_containerName, "parallel2/").Count == n);
+
+            var names = blobList.Select(x => x.Item1).ToList();
+            storage.Blobs.DeleteParallel(_containerName, names);
+
+            Assert.IsTrue(storage.Blobs.List(_containerName, "parallel2/").Count == 0);
+        }
 
 
+        [Test]
+        [Order(0)]
+        public void DeleteParallelALL()
+        {
+            var storage = new EasyAzStorage.AzureStorage(_azureConnectionString);
+
+            var allBlobs = storage.Blobs.List(_containerName);
+            var names = allBlobs.Select(x => x.Name).ToList();
+            storage.Blobs.DeleteParallel(_containerName, names);
+
+            Assert.IsTrue(storage.Blobs.List(_containerName).Count == 0);
+        }
 
 
 
